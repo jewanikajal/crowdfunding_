@@ -1,0 +1,7 @@
+status,test_name
+PASS,Concurrent project creation — 10/10 succeeded (≥80% threshold)
+concurrent_creation,10,10,366
+PASS,Concurrent funding handled — 5/5 succeeded (MVCC conflicts expected)
+concurrent_funding,5,5,150
+PASS,All concurrent validations succeeded — 5/5
+concurrent_validation,5,5,3804

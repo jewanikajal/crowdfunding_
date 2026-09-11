@@ -1,0 +1,44 @@
+const { Gateway, Wallets } = require("fabric-network");
+const fs = require("fs");
+const path = require("path");
+
+const ROOT_DIR = path.join(__dirname, "..", "..");
+
+async function getContract(channelName, chaincodeName, orgName, identityName) {
+  const walletPath = path.join(ROOT_DIR, "_wallets", orgName);
+  const gatewayPath = path.join(
+    ROOT_DIR,
+    "_gateways",
+    `${orgName.toLowerCase()}gateway.json`,
+  );
+
+  if (!fs.existsSync(walletPath)) {
+    throw new Error(`Wallet not found: ${walletPath}`);
+  }
+
+  if (!fs.existsSync(gatewayPath)) {
+    throw new Error(`Gateway profile not found: ${gatewayPath}`);
+  }
+
+  const wallet = await Wallets.newFileSystemWallet(walletPath);
+  const identity = await wallet.get(identityName);
+  if (!identity) {
+    throw new Error(`Identity ${identityName} not found in wallet ${orgName}`);
+  }
+
+  const ccp = JSON.parse(fs.readFileSync(gatewayPath, "utf8"));
+  const gateway = new Gateway();
+
+  await gateway.connect(ccp, {
+    wallet,
+    identity: identityName,
+    discovery: { enabled: true, asLocalhost: true },
+  });
+
+  const network = await gateway.getNetwork(channelName);
+  const contract = network.getContract(chaincodeName);
+
+  return { contract, gateway };
+}
+
+module.exports = { getContract };

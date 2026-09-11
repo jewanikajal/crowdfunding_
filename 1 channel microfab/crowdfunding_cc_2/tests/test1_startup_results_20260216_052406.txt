@@ -1,0 +1,10 @@
+==================================
+TEST 1: STARTUPORG - CREATE CAMPAIGNS
+Date: Mon Feb 16 05:24:29 IST 2026
+==================================
+
+Campaigns Created: 50/50
+Failed: 0
+Time Taken: 19s
+TPS: 2.63
+Avg Latency: 366ms

@@ -1,0 +1,272 @@
+[
+  {
+    "id": "2026-04-08T06:05:48.323Z",
+    "totalTx": 500,
+    "success": 500,
+    "failed": 0,
+    "durationMs": 94059,
+    "tps": 5.32,
+    "concurrency": 4,
+    "chainCount": 71,
+    "remainder": 3,
+    "latency": {
+      "avgMs": 740,
+      "p50Ms": 737,
+      "p95Ms": 835,
+      "minMs": 517,
+      "maxMs": 1912
+    },
+    "perOp": {
+      "startup.register": {
+        "count": 71,
+        "success": 71,
+        "failed": 0,
+        "avgMs": 802,
+        "p50Ms": 748,
+        "p95Ms": 1768,
+        "minMs": 577,
+        "maxMs": 1912
+      },
+      "startup.validate": {
+        "count": 71,
+        "success": 71,
+        "failed": 0,
+        "avgMs": 725,
+        "p50Ms": 736,
+        "p95Ms": 851,
+        "minMs": 517,
+        "maxMs": 915
+      },
+      "investor.register": {
+        "count": 71,
+        "success": 71,
+        "failed": 0,
+        "avgMs": 717,
+        "p50Ms": 723,
+        "p95Ms": 822,
+        "minMs": 555,
+        "maxMs": 892
+      },
+      "investor.validate": {
+        "count": 71,
+        "success": 71,
+        "failed": 0,
+        "avgMs": 728,
+        "p50Ms": 718,
+        "p95Ms": 851,
+        "minMs": 571,
+        "maxMs": 1334
+      },
+      "project.create": {
+        "count": 71,
+        "success": 71,
+        "failed": 0,
+        "avgMs": 740,
+        "p50Ms": 742,
+        "p95Ms": 845,
+        "minMs": 537,
+        "maxMs": 867
+      },
+      "project.approve": {
+        "count": 71,
+        "success": 71,
+        "failed": 0,
+        "avgMs": 732,
+        "p50Ms": 737,
+        "p95Ms": 822,
+        "minMs": 600,
+        "maxMs": 835
+      },
+      "fund": {
+        "count": 74,
+        "success": 74,
+        "failed": 0,
+        "avgMs": 737,
+        "p50Ms": 739,
+        "p95Ms": 837,
+        "minMs": 599,
+        "maxMs": 856
+      }
+    }
+  },
+  {
+    "id": "2026-04-08T05:43:23.080Z",
+    "totalTx": 1000,
+    "success": 1000,
+    "failed": 0,
+    "durationMs": 212185,
+    "tps": 4.71,
+    "concurrency": 8,
+    "chainCount": 142,
+    "remainder": 6,
+    "latency": {
+      "avgMs": 1661,
+      "p50Ms": 1682,
+      "p95Ms": 2272,
+      "minMs": 670,
+      "maxMs": 3005
+    },
+    "perOp": {
+      "startup.register": {
+        "count": 142,
+        "success": 142,
+        "failed": 0,
+        "avgMs": 1737,
+        "p50Ms": 1690,
+        "p95Ms": 2545,
+        "minMs": 670,
+        "maxMs": 3005
+      },
+      "startup.validate": {
+        "count": 142,
+        "success": 142,
+        "failed": 0,
+        "avgMs": 1643,
+        "p50Ms": 1639,
+        "p95Ms": 2281,
+        "minMs": 811,
+        "maxMs": 2484
+      },
+      "investor.register": {
+        "count": 142,
+        "success": 142,
+        "failed": 0,
+        "avgMs": 1654,
+        "p50Ms": 1668,
+        "p95Ms": 2189,
+        "minMs": 830,
+        "maxMs": 2956
+      },
+      "investor.validate": {
+        "count": 142,
+        "success": 142,
+        "failed": 0,
+        "avgMs": 1631,
+        "p50Ms": 1668,
+        "p95Ms": 2157,
+        "minMs": 847,
+        "maxMs": 2641
+      },
+      "project.create": {
+        "count": 142,
+        "success": 142,
+        "failed": 0,
+        "avgMs": 1637,
+        "p50Ms": 1696,
+        "p95Ms": 2143,
+        "minMs": 711,
+        "maxMs": 2371
+      },
+      "project.approve": {
+        "count": 142,
+        "success": 142,
+        "failed": 0,
+        "avgMs": 1662,
+        "p50Ms": 1643,
+        "p95Ms": 2343,
+        "minMs": 813,
+        "maxMs": 2710
+      },
+      "fund": {
+        "count": 148,
+        "success": 148,
+        "failed": 0,
+        "avgMs": 1666,
+        "p50Ms": 1692,
+        "p95Ms": 2250,
+        "minMs": 698,
+        "maxMs": 2495
+      }
+    }
+  },
+  {
+    "id": "2026-04-08T05:17:36.981Z",
+    "totalTx": 1000,
+    "success": 876,
+    "failed": 124,
+    "durationMs": 260403,
+    "tps": 3.36,
+    "concurrency": 8,
+    "chainCount": 142,
+    "remainder": 6,
+    "latency": {
+      "avgMs": 2047,
+      "p50Ms": 1663,
+      "p95Ms": 6141,
+      "minMs": 285,
+      "maxMs": 8028
+    },
+    "perOp": {
+      "startup.register": {
+        "count": 142,
+        "success": 129,
+        "failed": 13,
+        "avgMs": 2227,
+        "p50Ms": 1694,
+        "p95Ms": 6153,
+        "minMs": 705,
+        "maxMs": 7022
+      },
+      "startup.validate": {
+        "count": 142,
+        "success": 126,
+        "failed": 16,
+        "avgMs": 1954,
+        "p50Ms": 1658,
+        "p95Ms": 6138,
+        "minMs": 666,
+        "maxMs": 6298
+      },
+      "investor.register": {
+        "count": 142,
+        "success": 131,
+        "failed": 11,
+        "avgMs": 1954,
+        "p50Ms": 1652,
+        "p95Ms": 6136,
+        "minMs": 966,
+        "maxMs": 6290
+      },
+      "investor.validate": {
+        "count": 142,
+        "success": 131,
+        "failed": 11,
+        "avgMs": 1965,
+        "p50Ms": 1644,
+        "p95Ms": 6134,
+        "minMs": 885,
+        "maxMs": 6156
+      },
+      "project.create": {
+        "count": 142,
+        "success": 124,
+        "failed": 18,
+        "avgMs": 1904,
+        "p50Ms": 1648,
+        "p95Ms": 6133,
+        "minMs": 285,
+        "maxMs": 6272
+      },
+      "project.approve": {
+        "count": 142,
+        "success": 116,
+        "failed": 26,
+        "avgMs": 2162,
+        "p50Ms": 1721,
+        "p95Ms": 6155,
+        "minMs": 673,
+        "maxMs": 8028
+      },
+      "fund": {
+        "count": 148,
+        "success": 119,
+        "failed": 29,
+        "avgMs": 2156,
+        "p50Ms": 1668,
+        "p95Ms": 6160,
+        "minMs": 687,
+        "maxMs": 6497
+      }
+    }
+  }
+]

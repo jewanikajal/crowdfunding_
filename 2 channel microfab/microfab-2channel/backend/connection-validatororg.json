@@ -1,0 +1,51 @@
+{
+  "certificateAuthorities": {
+    "validatororgca-api.127-0-0-1.nip.io:9090": {
+      "url": "http://localhost:9090"
+    }
+  },
+  "client": {
+    "organization": "ValidatorOrg",
+    "connection": {
+      "timeout": {
+        "peer": {
+          "endorser": 300
+        },
+        "orderer": 300
+      }
+    }
+  },
+  "organizations": {
+    "ValidatorOrg": {
+      "certificateAuthorities": ["validatororgca-api.127-0-0-1.nip.io:9090"],
+      "mspid": "ValidatorOrgMSP",
+      "peers": ["validatororgpeer-api.127-0-0-1.nip.io:9090"]
+    }
+  },
+  "peers": {
+    "validatororgpeer-api.127-0-0-1.nip.io:9090": {
+      "grpcOptions": {
+        "ssl-target-name-override": "validatororgpeer-api.127-0-0-1.nip.io",
+        "grpc.default_authority": "validatororgpeer-api.127-0-0-1.nip.io"
+      },
+      "url": "grpcs://validatororgpeer-api.127-0-0-1.nip.io:9090"
+    }
+  },
+  "orderers": {
+    "orderer-api.127-0-0-1.nip.io:9090": {
+      "url": "grpcs://orderer-api.127-0-0-1.nip.io:9090",
+      "grpcOptions": {
+        "ssl-target-name-override": "orderer-api.127-0-0-1.nip.io",
+        "grpc.default_authority": "orderer-api.127-0-0-1.nip.io"
+      }
+    }
+  },
+  "channels": {
+    "gov-validation-channel": {
+      "orderers": ["orderer-api.127-0-0-1.nip.io:9090"],
+      "peers": {
+        "validatororgpeer-api.127-0-0-1.nip.io:9090": {}
+      }
+    }
+  }
+}

@@ -1,0 +1,73 @@
+/channel-artifacts/*.tx
+/channel-artifacts/*.block
+/ledgers
+/ledgers-backup
+/channel-artifacts/*.json
+/channel-artifacts/*.pb
+/org3-artifacts/crypto-config/*
+organizations/fabric-ca/ordererOrg/*
+organizations/fabric-ca/org1/*
+organizations/fabric-ca/org2/*
+addOrg3/fabric-ca/org3/*
+organizations/ordererOrganizations/*
+organizations/peerOrganizations/*
+system-genesis-block/*
+*.tar.gz
+log.txt
+# Fabric runtime
+organizations/
+*.block
+
+# Monitoring
+prometheus-grafana/
+
+# Logs
+*.log
+# Fabric CA & Crypto (DO NOT PUSH)
+**/fabric-ca/
+**/msp/
+**/keystore/
+*_sk
+*.db
+Issuer*
+tls-cert.pem
+
+# Local environment and accidental local artifacts
+.env
+.env.*
+Program
+
+# Go vendor directories & dependencies
+**/vendor/
+crowdfund-chaincode/vendor/
+go.sum
+
+# Generated Go files
+*-packr.go
+packrd/
+
+# Go build artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+*.exe~
+*.dll
+
+# Go test binaries
+*.test
+
+# IDEs & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Go build directories
+dist/
+bin/
+build/

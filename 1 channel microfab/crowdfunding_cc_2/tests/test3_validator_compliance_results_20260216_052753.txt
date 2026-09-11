@@ -1,0 +1,10 @@
+==================================
+TEST 3: VALIDATORORG - SET COMPLIANCE SCORES
+Date: Mon Feb 16 05:28:15 IST 2026
+==================================
+
+Compliance Scores Set: 50/50
+Failed: 0
+Time Taken: 20s
+TPS: 2.50
+Avg Latency: 376ms

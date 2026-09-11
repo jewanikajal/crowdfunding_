@@ -1,0 +1,15 @@
+status,test_name
+PASS,InvestorOrg correctly denied access to gov-validation-channel
+PASS,InvestorOrg invoke on gov-validation-channel correctly rejected
+FAIL,Investor Aadhar number visible in public state — DATA LEAKAGE DETECTED
+FAIL,Startup PAN number visible to InvestorOrg in public state — DATA LEAKAGE
+PASS,Validator can read startup validation status on gov channel
+PASS,Project created only on gov channel NOT visible on investment channel
+PASS,Project correctly exists only on gov channel
+FAIL,Startup can see investor annualIncome — sensitive financial data exposed
+PASS,Validator correctly sees investor validation status on gov channel
+PASS,Empty approval hash correctly rejected on investment channel
+PASS,Funding unapproved project correctly rejected
+SUMMARY
+Total: 11 | Pass: 8 | Fail: 3
+Pass Rate: 72.7%

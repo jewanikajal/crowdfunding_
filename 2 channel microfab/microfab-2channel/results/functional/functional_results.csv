@@ -1,0 +1,211 @@
+status,test_name
+PASS,Duplicate startup registration correctly rejected
+PASS,Duplicate investor registration correctly rejected
+PASS,Investor with income below 500000 correctly rejected
+PASS,Project rejection succeeded on gov channel
+FAIL,Rejected project status not CANCELLED
+PASS,Cannot approve already rejected project
+PASS,Zero amount funding correctly rejected
+FAIL,Refund on cancelled project failed
+PASS,Double refund correctly rejected
+PASS,Dispute raised successfully within window
+FAIL,Dispute resolution failed
+PASS,Duplicate dispute correctly rejected
+PASS,Unvalidated startup correctly blocked from creating project
+PASS,Unvalidated investor correctly blocked from funding
+SUMMARY
+Total: 14 | Pass: 11 | Fail: 3
+Pass Rate: 78.5%
+PASS,Duplicate startup registration correctly rejected
+PASS,Duplicate investor registration correctly rejected
+PASS,Investor with income below 500000 correctly rejected
+PASS,Rejected project state updated correctly
+PASS,Cannot approve already rejected project
+PASS,Zero amount funding correctly rejected
+FAIL,Refund failed
+PASS,Double refund correctly rejected
+PASS,Dispute raised successfully within window
+FAIL,Dispute resolution failed
+PASS,Duplicate dispute correctly rejected
+PASS,Duplicate startup registration correctly rejected
+PASS,Duplicate investor registration correctly rejected
+PASS,Investor with income below 500000 correctly rejected
+PASS,Rejected project state updated correctly
+PASS,Cannot approve already rejected project
+PASS,Zero amount funding correctly rejected
+FAIL,Refund failed
+PASS,Double refund correctly rejected
+PASS,Dispute raised successfully within window
+FAIL,Dispute resolution failed
+PASS,Duplicate dispute correctly rejected
+PASS,Unvalidated startup correctly blocked from creating project
+PASS,Unvalidated investor correctly blocked from funding
+PASS,Duplicate startup registration correctly rejected
+PASS,Duplicate investor registration correctly rejected
+PASS,Investor with income below 500000 correctly rejected
+PASS,Rejected project state updated correctly
+PASS,Cannot approve already rejected project
+PASS,Zero amount funding correctly rejected
+FAIL,Refund failed
+PASS,Double refund correctly rejected
+PASS,Dispute raised successfully within window
+FAIL,Dispute resolution failed
+PASS,Duplicate dispute correctly rejected
+PASS,Unvalidated startup correctly blocked from creating project
+PASS,Unvalidated investor correctly blocked from funding
+FAIL,Duplicate startup registration was allowed
+FAIL,Duplicate investor registration was allowed
+FAIL,Investor with low income was approved — THRESHOLD CHECK BROKEN
+FAIL,Rejected project state not updated
+FAIL,Rejected project approved
+FAIL,Zero amount funding was allowed
+FAIL,Refund failed
+FAIL,Double refund allowed
+FAIL,Dispute raising failed
+FAIL,Dispute resolution failed
+FAIL,Duplicate dispute was allowed — DISPUTE LOGIC BROKEN
+FAIL,Unvalidated startup was allowed to create project — VALIDATION GATE BROKEN
+PASS,Unvalidated investor correctly blocked from funding
+PASS,Duplicate startup registration correctly rejected
+PASS,Duplicate investor registration correctly rejected
+PASS,Investor with income below 500000 correctly rejected
+FAIL,Rejected project state not updated
+PASS,Cannot approve already rejected project
+PASS,Zero amount funding correctly rejected
+FAIL,Refund failed
+PASS,Double refund correctly rejected
+FAIL,Dispute raising failed
+FAIL,Dispute resolution failed
+PASS,Duplicate dispute correctly rejected
+PASS,Unvalidated startup correctly blocked from creating project
+PASS,Unvalidated investor correctly blocked from funding
+PASS,Duplicate startup registration correctly rejected
+PASS,Duplicate investor registration correctly rejected
+PASS,Investor with income below 500000 correctly rejected
+PASS,Rejected project state updated correctly
+PASS,Cannot approve already rejected project
+PASS,Zero amount funding correctly rejected
+FAIL,Refund failed
+PASS,Double refund correctly rejected
+PASS,Dispute raised successfully within window
+PASS,Dispute resolved successfully — REFUND decision
+PASS,Duplicate dispute correctly rejected
+PASS,Unvalidated startup correctly blocked from creating project
+PASS,Unvalidated investor correctly blocked from funding
+PASS,Duplicate startup registration correctly rejected
+PASS,Duplicate investor registration correctly rejected
+PASS,Investor with income below 500000 correctly rejected
+PASS,Rejected project state updated correctly
+PASS,Cannot approve already rejected project
+PASS,Zero amount funding correctly rejected
+FAIL,Refund failed
+PASS,Double refund correctly rejected
+PASS,Dispute raised successfully within window
+PASS,Dispute resolved successfully — REFUND decision
+PASS,Duplicate dispute correctly rejected
+PASS,Unvalidated startup correctly blocked from creating project
+PASS,Unvalidated investor correctly blocked from funding
+PASS,Duplicate startup registration correctly rejected
+PASS,Duplicate investor registration correctly rejected
+PASS,Investor with income below 500000 correctly rejected
+PASS,Rejected project state updated correctly
+PASS,Cannot approve already rejected project
+PASS,Zero amount funding correctly rejected
+FAIL,Refund failed
+PASS,Double refund correctly rejected
+PASS,Dispute raised successfully within window
+PASS,Dispute resolved successfully — REFUND decision
+PASS,Duplicate dispute correctly rejected
+PASS,Unvalidated startup correctly blocked from creating project
+PASS,Unvalidated investor correctly blocked from funding
+PASS,Duplicate startup registration correctly rejected
+PASS,Duplicate investor registration correctly rejected
+PASS,Investor with income below 500000 correctly rejected
+PASS,Rejected project state updated correctly
+PASS,Cannot approve already rejected project
+PASS,Zero amount funding correctly rejected
+FAIL,Refund failed
+PASS,Double refund correctly rejected
+PASS,Dispute raised successfully within window
+PASS,Dispute resolved successfully — REFUND decision
+PASS,Duplicate dispute correctly rejected
+PASS,Unvalidated startup correctly blocked from creating project
+PASS,Unvalidated investor correctly blocked from funding
+PASS,Duplicate startup registration correctly rejected
+PASS,Duplicate investor registration correctly rejected
+PASS,Investor with income below 500000 correctly rejected
+PASS,Rejected project state updated correctly
+PASS,Cannot approve already rejected project
+PASS,Zero amount funding correctly rejected
+FAIL,Refund failed
+PASS,Double refund correctly rejected
+PASS,Dispute raised successfully within window
+FAIL,Dispute resolution failed
+PASS,Duplicate dispute correctly rejected
+PASS,Unvalidated startup correctly blocked from creating project
+PASS,Unvalidated investor correctly blocked from funding
+PASS,Duplicate startup registration correctly rejected
+PASS,Duplicate investor registration correctly rejected
+PASS,Investor with income below 500000 correctly rejected
+PASS,Rejected project state updated correctly
+PASS,Cannot approve already rejected project
+PASS,Zero amount funding correctly rejected
+FAIL,Refund failed
+PASS,Double refund correctly rejected
+PASS,Dispute raised successfully within window
+FAIL,Dispute resolution failed
+PASS,Duplicate dispute correctly rejected
+PASS,Unvalidated startup correctly blocked from creating project
+PASS,Unvalidated investor correctly blocked from funding
+PASS,Duplicate startup registration correctly rejected
+PASS,Duplicate investor registration correctly rejected
+PASS,Investor with income below 500000 correctly rejected
+PASS,Rejected project state updated correctly
+PASS,Cannot approve already rejected project
+PASS,Zero amount funding correctly rejected
+FAIL,Refund failed
+PASS,Double refund correctly rejected
+PASS,Dispute raised successfully within window
+FAIL,Dispute resolution failed
+PASS,Duplicate dispute correctly rejected
+PASS,Unvalidated startup correctly blocked from creating project
+PASS,Unvalidated investor correctly blocked from funding
+PASS,Duplicate startup registration correctly rejected
+PASS,Duplicate investor registration correctly rejected
+PASS,Investor with income below 500000 correctly rejected
+PASS,Rejected project state updated correctly
+PASS,Cannot approve already rejected project
+PASS,Zero amount funding correctly rejected
+FAIL,Refund failed
+PASS,Double refund correctly rejected
+PASS,Dispute raised successfully within window
+FAIL,Dispute resolution failed
+PASS,Duplicate dispute correctly rejected
+PASS,Unvalidated startup correctly blocked from creating project
+PASS,Unvalidated investor correctly blocked from funding
+PASS,Duplicate startup registration correctly rejected
+PASS,Duplicate investor registration correctly rejected
+PASS,Investor with income below 500000 correctly rejected
+PASS,Rejected project state updated correctly
+PASS,Cannot approve already rejected project
+PASS,Zero amount funding correctly rejected
+FAIL,Refund failed
+PASS,Double refund correctly rejected
+PASS,Dispute raised successfully within window
+FAIL,Dispute resolution failed
+PASS,Duplicate dispute correctly rejected
+PASS,Unvalidated startup correctly blocked from creating project
+PASS,Unvalidated investor correctly blocked from funding
+PASS,Duplicate startup registration correctly rejected
+PASS,Duplicate investor registration correctly rejected
+PASS,Investor with income below 500000 correctly rejected
+PASS,Rejected project state updated correctly
+PASS,Cannot approve already rejected project
+PASS,Zero amount funding correctly rejected
+FAIL,Refund failed
+PASS,Double refund correctly rejected
+PASS,Dispute raised successfully within window
+PASS,Dispute resolved successfully — REFUND decision
+PASS,Duplicate dispute correctly rejected
+PASS,Unvalidated startup correctly blocked from creating project
+PASS,Unvalidated investor correctly blocked from funding

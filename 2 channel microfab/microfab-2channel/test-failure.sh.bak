@@ -1,0 +1,470 @@
+#!/bin/bash
+
+# ============================================================
+# DUAL CHANNEL FAILURE & RECOVERY TEST SCRIPT
+# Tests what happens when things go wrong:
+# 1. Fund already closed project
+# 2. Release already released funds
+# 3. Refund on active project
+# 4. Approve already approved project
+# 5. Query non-existent entities
+# 6. Resolve non-existent dispute
+# 7. Create project for non-existent startup
+# Path: /home/tejas/cip-2-test
+# ============================================================
+
+set_startup_env() {
+  export CORE_PEER_LOCALMSPID=StartupOrgMSP
+  export CORE_PEER_MSPCONFIGPATH=/home/tejas/cip-2-test/_msp/StartupOrg/startuporgadmin/msp
+  export CORE_PEER_ADDRESS=startuporgpeer-api.127-0-0-1.nip.io:9090
+}
+
+set_validator_env() {
+  export CORE_PEER_LOCALMSPID=ValidatorOrgMSP
+  export CORE_PEER_MSPCONFIGPATH=/home/tejas/cip-2-test/_msp/ValidatorOrg/validatororgadmin/msp
+  export CORE_PEER_ADDRESS=validatororgpeer-api.127-0-0-1.nip.io:9090
+}
+
+set_investor_env() {
+  export CORE_PEER_LOCALMSPID=InvestorOrgMSP
+  export CORE_PEER_MSPCONFIGPATH=/home/tejas/cip-2-test/_msp/InvestorOrg/investororgadmin/msp
+  export CORE_PEER_ADDRESS=investororgpeer-api.127-0-0-1.nip.io:9090
+}
+
+set_platform_env() {
+  export CORE_PEER_LOCALMSPID=PlatformOrgMSP
+  export CORE_PEER_MSPCONFIGPATH=/home/tejas/cip-2-test/_msp/PlatformOrg/platformorgadmin/msp
+  export CORE_PEER_ADDRESS=platformorgpeer-api.127-0-0-1.nip.io:9090
+}
+
+GOV_CHANNEL="gov-validation-channel"
+INV_CHANNEL="investment-channel"
+GOV_CHAINCODE="govcc"
+INV_CHAINCODE="investcc"
+ORDERER="orderer-api.127-0-0-1.nip.io:9090"
+RESULTS_DIR="./results/failure"
+mkdir -p "$RESULTS_DIR"
+
+PASS=0
+FAIL=0
+TOTAL=0
+
+pass() {
+  echo " ✅ PASS — $1"
+  PASS=$((PASS + 1))
+  TOTAL=$((TOTAL + 1))
+  echo "PASS,$1" >> "$RESULTS_DIR/failure_results.csv"
+}
+
+fail() {
+  echo " ❌ FAIL — $1"
+  FAIL=$((FAIL + 1))
+  TOTAL=$((TOTAL + 1))
+  echo "FAIL,$1" >> "$RESULTS_DIR/failure_results.csv"
+}
+
+section() {
+  echo ""
+  echo "============================================"
+  echo " $1"
+  echo "============================================"
+}
+
+# Helper — full project setup on both channels, returns pid
+setup_funded_project() {
+  local prefix=$1
+  local pid="${prefix}_$$"
+
+  set_startup_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"CreateProject\",\"Args\":[\"$pid\",\"sfail\",\"$prefix Project\",\"Test\",\"100000\",\"30\",\"fintech\",\"equity\",\"India\",\"SMEs\",\"mvp\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"ApproveProject\",\"Args\":[\"$pid\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  local hash=$(peer chaincode query -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    -c "{\"function\":\"GetProject\",\"Args\":[\"$pid\"]}" 2>/dev/null | \
+    python3 -c "import sys,json; print(json.load(sys.stdin).get('approvalHash',''))" 2>/dev/null)
+
+  set_platform_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses platformorgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"CreateProject\",\"Args\":[\"$pid\",\"sfail\",\"$prefix Project\",\"Test\",\"100000\",\"30\",\"fintech\",\"equity\",\"India\",\"SMEs\",\"mvp\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses platformorgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"ApproveProject\",\"Args\":[\"$pid\",\"$hash\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_investor_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses investororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"Fund\",\"Args\":[\"$pid\",\"ifail\",\"102100\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  echo "$pid"
+}
+
+# ============================================================
+# SETUP
+# ============================================================
+
+setup() {
+  section "SETUP — Preparing base entities"
+
+  set_startup_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"RegisterStartup","Args":["sfail","FailStartup","fail@startup.com","PANFL1","GSTFL1","2022-01-01","fintech","product","India","Maharashtra","Pune","www.fail.com","Failure test startup","2022","Fail Founder"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"ValidateStartup","Args":["sfail","APPROVED"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_startup_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"RegisterInvestor","Args":["ifail","FailInvestor","fail@inv.com","PANFL2","AADHARFL2","angel","India","Maharashtra","Mumbai","fintech","large","1000000",""]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"ValidateInvestor","Args":["ifail","APPROVED"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  # Mirror on investment channel
+  set_startup_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"RegisterStartup","Args":["sfail","FailStartup","fail@startup.com","PANFL1","GSTFL1","2022-01-01","fintech","product","India","Maharashtra","Pune","www.fail.com","Failure test startup","2022","Fail Founder"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"ValidateStartup","Args":["sfail","APPROVED"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_investor_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses investororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"RegisterInvestor","Args":["ifail","FailInvestor","fail@inv.com","PANFL2","AADHARFL2","angel","India","Maharashtra","Mumbai","fintech","large","1000000",""]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"ValidateInvestor","Args":["ifail","APPROVED"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  echo " Setup complete."
+}
+
+# ============================================================
+# TEST 1 — FUND ALREADY CLOSED PROJECT
+# ============================================================
+
+test_fund_closed_project() {
+  section "TEST 1 — FUND ALREADY CLOSED/RELEASED PROJECT"
+
+  pid=$(setup_funded_project "closed")
+
+  # Release funds first — closes project
+  set_platform_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses platformorgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"ReleaseFunds\",\"Args\":[\"$pid\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  # Try to fund closed project
+  set_investor_env
+  out=$(peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses investororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"Fund\",\"Args\":[\"$pid\",\"ifail\",\"50000\"]}" 2>&1)
+
+  if echo "$out" | grep -qiE "already closed|not open|error|500"; then
+    pass "Funding closed project correctly rejected"
+  else
+    fail "Closed project was funded — STATE MACHINE BROKEN"
+    echo " Output: $out"
+  fi
+}
+
+# ============================================================
+# TEST 2 — DOUBLE RELEASE
+# ============================================================
+
+test_double_release() {
+  section "TEST 2 — DOUBLE RELEASE FUNDS"
+
+  pid=$(setup_funded_project "release")
+
+  # First release — should succeed
+  set_platform_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses platformorgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"ReleaseFunds\",\"Args\":[\"$pid\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  # Second release — should fail
+  out=$(peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses platformorgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"ReleaseFunds\",\"Args\":[\"$pid\"]}" 2>&1)
+
+  if echo "$out" | grep -qiE "already released|not open|error|500"; then
+    pass "Double release correctly rejected"
+  else
+    fail "Double fund release was allowed — SERIOUS BUG"
+    echo " Output: $out"
+  fi
+}
+
+# ============================================================
+# TEST 3 — REFUND ON ACTIVE OPEN PROJECT
+# ============================================================
+
+test_refund_active_project() {
+  section "TEST 3 — REFUND ON ACTIVE OPEN PROJECT"
+
+  local pid="fail_refact_$$"
+
+  set_startup_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"CreateProject\",\"Args\":[\"$pid\",\"sfail\",\"Active Project\",\"Active\",\"100000\",\"30\",\"fintech\",\"equity\",\"India\",\"SMEs\",\"mvp\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"ApproveProject\",\"Args\":[\"$pid\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  local hash=$(peer chaincode query -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    -c "{\"function\":\"GetProject\",\"Args\":[\"$pid\"]}" 2>/dev/null | \
+    python3 -c "import sys,json; print(json.load(sys.stdin).get('approvalHash',''))" 2>/dev/null)
+
+  set_platform_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses platformorgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"CreateProject\",\"Args\":[\"$pid\",\"sfail\",\"Active Project\",\"Active\",\"100000\",\"30\",\"fintech\",\"equity\",\"India\",\"SMEs\",\"mvp\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses platformorgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"ApproveProject\",\"Args\":[\"$pid\",\"$hash\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_investor_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses investororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"Fund\",\"Args\":[\"$pid\",\"ifail\",\"50000\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  # Project is OPEN and partially funded — refund should fail
+  out=$(peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses investororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"Refund\",\"Args\":[\"$pid\",\"ifail\"]}" 2>&1)
+
+  if echo "$out" | grep -qiE "project not cancelled|not eligible|error|500"; then
+    pass "Refund on active project correctly rejected"
+  else
+    fail "Refund was allowed on active project — REFUND LOGIC BROKEN"
+    echo " Output: $out"
+  fi
+}
+
+# ============================================================
+# TEST 4 — APPROVE ALREADY APPROVED PROJECT
+# ============================================================
+
+test_double_approve() {
+  section "TEST 4 — DOUBLE APPROVAL OF PROJECT"
+
+  local pid="fail_dapprove_$$"
+
+  set_startup_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"CreateProject\",\"Args\":[\"$pid\",\"sfail\",\"Double Approve\",\"Test\",\"100000\",\"30\",\"fintech\",\"equity\",\"India\",\"SMEs\",\"mvp\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  # First approval
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"ApproveProject\",\"Args\":[\"$pid\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  # Second approval — should fail
+  out=$(peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"ApproveProject\",\"Args\":[\"$pid\"]}" 2>&1)
+
+  if echo "$out" | grep -qiE "already approved|error|500"; then
+    pass "Double approval correctly rejected"
+  else
+    fail "Project was approved twice — STATE MACHINE BROKEN"
+    echo " Output: $out"
+  fi
+}
+
+# ============================================================
+# TEST 5 — QUERY NON-EXISTENT ENTITIES
+# ============================================================
+
+test_query_nonexistent() {
+  section "TEST 5 — QUERY NON-EXISTENT ENTITIES"
+
+  # Query non-existent startup
+  set_validator_env
+  out=$(peer chaincode query -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    -c '{"function":"GetStartup","Args":["startup_does_not_exist_xyz"]}' 2>&1)
+
+  if echo "$out" | grep -qiE "not found|error|failed"; then
+    pass "Non-existent startup query returns proper error"
+  else
+    fail "Non-existent startup query returned data — unexpected"
+    echo " Output: $out"
+  fi
+
+  # Query non-existent investor
+  out=$(peer chaincode query -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    -c '{"function":"GetInvestor","Args":["investor_does_not_exist_xyz"]}' 2>&1)
+
+  if echo "$out" | grep -qiE "not found|error|failed"; then
+    pass "Non-existent investor query returns proper error"
+  else
+    fail "Non-existent investor query returned data — unexpected"
+    echo " Output: $out"
+  fi
+
+  # Query non-existent project
+  out=$(peer chaincode query -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    -c '{"function":"GetProject","Args":["project_does_not_exist_xyz"]}' 2>&1)
+
+  if echo "$out" | grep -qiE "not found|error|failed"; then
+    pass "Non-existent project query returns proper error"
+  else
+    fail "Non-existent project query returned data — unexpected"
+    echo " Output: $out"
+  fi
+}
+
+# ============================================================
+# TEST 6 — RESOLVE NON-EXISTENT DISPUTE
+# ============================================================
+
+test_resolve_nonexistent_dispute() {
+  section "TEST 6 — RESOLVE NON-EXISTENT DISPUTE"
+
+  set_validator_env
+  out=$(peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"ResolveDispute","Args":["proj_does_not_exist","inv_does_not_exist","REFUND"]}' 2>&1)
+
+  if echo "$out" | grep -qiE "not found|error|500"; then
+    pass "Resolving non-existent dispute correctly rejected"
+  else
+    fail "Non-existent dispute resolution succeeded — unexpected"
+    echo " Output: $out"
+  fi
+}
+
+# ============================================================
+# TEST 7 — CREATE PROJECT FOR NON-EXISTENT STARTUP
+# ============================================================
+
+test_project_nonexistent_startup() {
+  section "TEST 7 — CREATE PROJECT FOR NON-EXISTENT STARTUP"
+
+  set_startup_env
+  out=$(peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"CreateProject","Args":["proj_ghost","startup_ghost_xyz","Ghost Project","Ghost","100000","30","fintech","equity","India","SMEs","mvp"]}' 2>&1)
+
+  if echo "$out" | grep -qiE "not found|not approved|error|500"; then
+    pass "Project creation for non-existent startup correctly rejected"
+  else
+    fail "Project was created for non-existent startup — VALIDATION BROKEN"
+    echo " Output: $out"
+  fi
+}
+
+# ============================================================
+# MAIN
+# ============================================================
+
+echo ""
+echo "============================================"
+echo " DUAL CHANNEL FAILURE & RECOVERY TEST SUITE"
+echo " Gov: $GOV_CHANNEL | Inv: $INV_CHANNEL"
+echo "============================================"
+
+> "$RESULTS_DIR/failure_results.csv"
+echo "status,test_name" >> "$RESULTS_DIR/failure_results.csv"
+
+setup
+sleep 2
+
+test_fund_closed_project
+sleep 1
+test_double_release
+sleep 1
+test_refund_active_project
+sleep 1
+test_double_approve
+sleep 1
+test_query_nonexistent
+sleep 1
+test_resolve_nonexistent_dispute
+sleep 1
+test_project_nonexistent_startup
+
+echo ""
+echo "============================================"
+echo " FAILURE & RECOVERY TEST SUMMARY"
+echo "============================================"
+echo " Total Tests : $TOTAL"
+echo " Passed      : $PASS"
+echo " Failed      : $FAIL"
+echo " Pass Rate   : $(echo "scale=1; $PASS*100/$TOTAL" | bc)%"
+echo "============================================"
+
+cat >> "$RESULTS_DIR/failure_results.csv" << EOF
+SUMMARY
+Total: $TOTAL | Pass: $PASS | Fail: $FAIL
+Pass Rate: $(echo "scale=1; $PASS*100/$TOTAL" | bc)%
+EOF

@@ -1,0 +1,8 @@
+TEST 1: REGISTER STARTUP RESULTS
+Timestamp: 
+Startups Registered: 0/20
+Failed: 20/20
+Time Taken: 0s
+TPS: 0
+Avg Latency: 0ms
+Success Rate: %

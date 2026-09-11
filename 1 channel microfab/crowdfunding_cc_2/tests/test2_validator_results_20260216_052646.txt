@@ -1,0 +1,10 @@
+==================================
+TEST 2: VALIDATORORG - SET RISK SCORES
+Date: Mon Feb 16 05:27:10 IST 2026
+==================================
+
+Risk Scores Set: 50/50
+Failed: 0
+Time Taken: 22s
+TPS: 2.27
+Avg Latency: 426ms

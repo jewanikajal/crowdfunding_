@@ -1,0 +1,470 @@
+#!/bin/bash
+
+# ============================================================
+# DUAL CHANNEL PRIVACY TEST SCRIPT
+# Tests:
+# 1. PDC Isolation — org cannot read another org's private data
+# 2. Channel Isolation — InvestorOrg cannot access gov channel
+# 3. Data Leakage — sensitive fields not in public state
+# Path: /home/tejas/cip-2-test
+# ============================================================
+
+# ============================================================
+# ORG ENVIRONMENT VARIABLES
+# ============================================================
+
+set_startup_env() {
+  export CORE_PEER_LOCALMSPID=StartupOrgMSP
+  export CORE_PEER_MSPCONFIGPATH=/home/tejas/cip-2-test/_msp/StartupOrg/startuporgadmin/msp
+  export CORE_PEER_ADDRESS=startuporgpeer-api.127-0-0-1.nip.io:9090
+}
+
+set_validator_env() {
+  export CORE_PEER_LOCALMSPID=ValidatorOrgMSP
+  export CORE_PEER_MSPCONFIGPATH=/home/tejas/cip-2-test/_msp/ValidatorOrg/validatororgadmin/msp
+  export CORE_PEER_ADDRESS=validatororgpeer-api.127-0-0-1.nip.io:9090
+}
+
+set_investor_env() {
+  export CORE_PEER_LOCALMSPID=InvestorOrgMSP
+  export CORE_PEER_MSPCONFIGPATH=/home/tejas/cip-2-test/_msp/InvestorOrg/investororgadmin/msp
+  export CORE_PEER_ADDRESS=investororgpeer-api.127-0-0-1.nip.io:9090
+}
+
+set_platform_env() {
+  export CORE_PEER_LOCALMSPID=PlatformOrgMSP
+  export CORE_PEER_MSPCONFIGPATH=/home/tejas/cip-2-test/_msp/PlatformOrg/platformorgadmin/msp
+  export CORE_PEER_ADDRESS=platformorgpeer-api.127-0-0-1.nip.io:9090
+}
+
+# ============================================================
+# CONFIG
+# ============================================================
+
+GOV_CHANNEL="gov-validation-channel"
+INV_CHANNEL="investment-channel"
+GOV_CHAINCODE="govcc"
+INV_CHAINCODE="investcc"
+ORDERER="orderer-api.127-0-0-1.nip.io:9090"
+RESULTS_DIR="./results/privacy"
+mkdir -p "$RESULTS_DIR"
+
+PASS=0
+FAIL=0
+TOTAL=0
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+pass() {
+  echo " ✅ PASS — $1"
+  PASS=$((PASS + 1))
+  TOTAL=$((TOTAL + 1))
+  echo "PASS,$1" >> "$RESULTS_DIR/privacy_results.csv"
+}
+
+fail() {
+  echo " ❌ FAIL — $1"
+  FAIL=$((FAIL + 1))
+  TOTAL=$((TOTAL + 1))
+  echo "FAIL,$1" >> "$RESULTS_DIR/privacy_results.csv"
+}
+
+section() {
+  echo ""
+  echo "============================================"
+  echo " $1"
+  echo "============================================"
+}
+
+# ============================================================
+# SETUP — register entities needed for privacy tests
+# ============================================================
+
+setup() {
+  section "SETUP — Preparing test entities"
+
+  # Register & validate startup on gov channel
+  set_startup_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"RegisterStartup","Args":["spriv","PrivStartup","priv@startup.com","PANPRIV1","GSTPRIV1","2022-01-01","fintech","product","India","Maharashtra","Pune","www.priv.com","Privacy test startup","2022","Priv Founder"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"ValidateStartup","Args":["spriv","APPROVED"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  # Register & validate investor on gov channel
+  set_startup_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"RegisterInvestor","Args":["ipriv","PrivInvestor","priv@inv.com","PANPRIV2","AADHARPRIV2","angel","India","Maharashtra","Mumbai","fintech","large","1000000",""]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"ValidateInvestor","Args":["ipriv","APPROVED"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  # Mirror on investment channel
+  set_startup_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"RegisterStartup","Args":["spriv","PrivStartup","priv@startup.com","PANPRIV1","GSTPRIV1","2022-01-01","fintech","product","India","Maharashtra","Pune","www.priv.com","Privacy test startup","2022","Priv Founder"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"ValidateStartup","Args":["spriv","APPROVED"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_investor_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses investororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"RegisterInvestor","Args":["ipriv","PrivInvestor","priv@inv.com","PANPRIV2","AADHARPRIV2","angel","India","Maharashtra","Mumbai","fintech","large","1000000",""]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"ValidateInvestor","Args":["ipriv","APPROVED"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  echo " Setup complete."
+}
+
+# ============================================================
+# TEST 1 — CHANNEL ISOLATION
+# InvestorOrg should NOT be able to query gov-validation-channel
+# because InvestorOrg is not a member of gov channel
+# ============================================================
+
+test_channel_isolation() {
+  section "TEST 1 — CHANNEL ISOLATION"
+  echo " Verifying InvestorOrg cannot access gov-validation-channel"
+
+  # InvestorOrg tries to query gov channel — should fail
+  set_investor_env
+  out=$(peer chaincode query \
+    -C "$GOV_CHANNEL" \
+    -n "$GOV_CHAINCODE" \
+    -c '{"function":"GetStartup","Args":["spriv"]}' 2>&1)
+
+  if echo "$out" | grep -qiE "access denied|not authorized|no such channel|cannot connect|failed|error"; then
+    pass "InvestorOrg correctly denied access to gov-validation-channel"
+  else
+    fail "InvestorOrg was able to access gov-validation-channel — CHANNEL ISOLATION BROKEN"
+    echo " Output: $out"
+  fi
+
+  # InvestorOrg tries to invoke on gov channel — should fail
+  set_investor_env
+  out=$(peer chaincode invoke -o "$ORDERER" \
+    -C "$GOV_CHANNEL" \
+    -n "$GOV_CHAINCODE" \
+    --peerAddresses investororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"GetProject","Args":["spriv"]}' 2>&1)
+
+  if echo "$out" | grep -qiE "access denied|not authorized|no such channel|cannot connect|failed|error"; then
+    pass "InvestorOrg invoke on gov-validation-channel correctly rejected"
+  else
+    fail "InvestorOrg invoke on gov-validation-channel succeeded — ISOLATION BROKEN"
+    echo " Output: $out"
+  fi
+}
+
+# ============================================================
+# TEST 2 — PUBLIC STATE DATA LEAKAGE CHECK
+# Sensitive fields like PAN, Aadhar should not appear
+# in public ledger state when queried by other orgs
+# ============================================================
+
+test_data_leakage() {
+  section "TEST 2 — PUBLIC STATE DATA LEAKAGE CHECK"
+  echo " Verifying sensitive fields not exposed in public state"
+
+  # Startup queries investor public state — should NOT see Aadhar
+  set_startup_env
+  out=$(peer chaincode query \
+    -C "$INV_CHANNEL" \
+    -n "$INV_CHAINCODE" \
+    -c '{"function":"GetInvestor","Args":["ipriv"]}' 2>&1)
+
+  if echo "$out" | grep -q "AADHARPRIV2"; then
+    fail "Investor Aadhar number visible in public state — DATA LEAKAGE DETECTED"
+    echo " Output: $out"
+  else
+    pass "Investor Aadhar number NOT visible in public state"
+  fi
+
+  # Investor queries startup public state — should NOT see GST/PAN raw details
+  set_investor_env
+  out=$(peer chaincode query \
+    -C "$INV_CHANNEL" \
+    -n "$INV_CHAINCODE" \
+    -c '{"function":"GetStartup","Args":["spriv"]}' 2>&1)
+
+  if echo "$out" | grep -q "PANPRIV1"; then
+    fail "Startup PAN number visible to InvestorOrg in public state — DATA LEAKAGE"
+    echo " Output: $out"
+  else
+    pass "Startup PAN number NOT visible to InvestorOrg in public state"
+  fi
+
+  # Check approval hash is present but actual KYC docs are not
+  set_validator_env
+  out=$(peer chaincode query \
+    -C "$GOV_CHANNEL" \
+    -n "$GOV_CHAINCODE" \
+    -c '{"function":"GetStartup","Args":["spriv"]}' 2>&1)
+
+  if echo "$out" | grep -q "validationStatus"; then
+    pass "Validator can read startup validation status on gov channel"
+  else
+    fail "Validator cannot read startup on gov channel"
+  fi
+}
+
+# ============================================================
+# TEST 3 — CROSS CHANNEL DATA SEPARATION
+# Data on gov channel should NOT be visible on investment channel
+# and vice versa
+# ============================================================
+
+test_cross_channel_separation() {
+  section "TEST 3 — CROSS CHANNEL DATA SEPARATION"
+  echo " Verifying gov channel data does not leak to investment channel"
+
+  # Create a project ONLY on gov channel — should NOT exist on investment channel
+  local test_pid="priv_sep_test_$$"
+
+  set_startup_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"CreateProject\",\"Args\":[\"$test_pid\",\"spriv\",\"Sep Test\",\"Separation test\",\"50000\",\"30\",\"fintech\",\"equity\",\"India\",\"SMEs\",\"mvp\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  # Query same project on investment channel — should NOT exist
+  set_investor_env
+  out=$(peer chaincode query \
+    -C "$INV_CHANNEL" \
+    -n "$INV_CHAINCODE" \
+    -c "{\"function\":\"GetProject\",\"Args\":[\"$test_pid\"]}" 2>&1)
+
+  if echo "$out" | grep -qiE "not found|error|failed"; then
+    pass "Project created only on gov channel NOT visible on investment channel"
+  else
+    fail "Project from gov channel leaked to investment channel — SEPARATION BROKEN"
+    echo " Output: $out"
+  fi
+
+  # Verify same project EXISTS on gov channel
+  set_validator_env
+  out=$(peer chaincode query \
+    -C "$GOV_CHANNEL" \
+    -n "$GOV_CHAINCODE" \
+    -c "{\"function\":\"GetProject\",\"Args\":[\"$test_pid\"]}" 2>&1)
+
+  if echo "$out" | grep -q "projectID"; then
+    pass "Project correctly exists only on gov channel"
+  else
+    fail "Project not found on gov channel either — unexpected"
+    echo " Output: $out"
+  fi
+}
+
+# ============================================================
+# TEST 4 — ORG ROLE BOUNDARY ON INVESTMENT CHANNEL
+# StartupOrg should NOT be able to see InvestorOrg's
+# investment details — cross org query isolation
+# ============================================================
+
+test_org_boundary() {
+  section "TEST 4 — ORG ROLE BOUNDARY ON INVESTMENT CHANNEL"
+  echo " Verifying orgs can only access their own data"
+
+  # Create and fund a project first
+  local test_pid="priv_bound_$$"
+
+  # Create on gov channel
+  set_startup_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"CreateProject\",\"Args\":[\"$test_pid\",\"spriv\",\"Boundary Test\",\"Boundary test project\",\"100000\",\"30\",\"fintech\",\"equity\",\"India\",\"SMEs\",\"mvp\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  # Approve on gov channel
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"ApproveProject\",\"Args\":[\"$test_pid\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  # Get hash
+  approval_hash=$(peer chaincode query \
+    -C "$GOV_CHANNEL" \
+    -n "$GOV_CHAINCODE" \
+    -c "{\"function\":\"GetProject\",\"Args\":[\"$test_pid\"]}" 2>/dev/null | \
+    python3 -c "import sys,json; print(json.load(sys.stdin).get('approvalHash',''))" 2>/dev/null)
+  sleep 1
+
+  # Sync to investment channel
+  set_platform_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses platformorgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"CreateProject\",\"Args\":[\"$test_pid\",\"spriv\",\"Boundary Test\",\"Boundary test project\",\"100000\",\"30\",\"fintech\",\"equity\",\"India\",\"SMEs\",\"mvp\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses platformorgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"ApproveProject\",\"Args\":[\"$test_pid\",\"$approval_hash\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  # Fund
+  set_investor_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses investororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"Fund\",\"Args\":[\"$test_pid\",\"ipriv\",\"102100\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  # StartupOrg tries to query investment record of investor — public query
+  set_startup_env
+  out=$(peer chaincode query \
+    -C "$INV_CHANNEL" \
+    -n "$INV_CHAINCODE" \
+    -c "{\"function\":\"GetInvestor\",\"Args\":[\"ipriv\"]}" 2>&1)
+
+  # Investment record should exist but NOT expose private financial details
+  if echo "$out" | grep -q "annualIncome"; then
+    fail "Startup can see investor annualIncome — sensitive financial data exposed"
+    echo " Output: $out"
+  else
+    pass "Startup cannot see investor sensitive financial fields"
+  fi
+
+  # ValidatorOrg verifies it CAN see investor on gov channel (its own domain)
+  set_validator_env
+  out=$(peer chaincode query \
+    -C "$GOV_CHANNEL" \
+    -n "$GOV_CHAINCODE" \
+    -c "{\"function\":\"GetInvestor\",\"Args\":[\"ipriv\"]}" 2>&1)
+
+  if echo "$out" | grep -q "validationStatus"; then
+    pass "Validator correctly sees investor validation status on gov channel"
+  else
+    fail "Validator cannot see investor on gov channel"
+    echo " Output: $out"
+  fi
+}
+
+# ============================================================
+# TEST 5 — APPROVAL HASH INTEGRITY
+# Verify that a fake/wrong approval hash is rejected
+# on investment channel
+# ============================================================
+
+test_approval_hash_integrity() {
+  section "TEST 5 — APPROVAL HASH INTEGRITY"
+  echo " Verifying fake approval hash is rejected on investment channel"
+
+  local test_pid="priv_hash_$$"
+
+  # Create project on investment channel directly with fake hash
+  set_platform_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses platformorgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"CreateProject\",\"Args\":[\"$test_pid\",\"spriv\",\"Hash Test\",\"Hash test project\",\"100000\",\"30\",\"fintech\",\"equity\",\"India\",\"SMEs\",\"mvp\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  # Try approving with empty/fake hash — should fail
+  out=$(peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses platformorgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"ApproveProject\",\"Args\":[\"$test_pid\",\"\"]}" 2>&1)
+
+  if echo "$out" | grep -qiE "approval hash required|error|failed|500"; then
+    pass "Empty approval hash correctly rejected on investment channel"
+  else
+    fail "Empty approval hash was accepted — HASH INTEGRITY BROKEN"
+    echo " Output: $out"
+  fi
+
+  # Try funding a project that has no approval — should fail
+  set_investor_env
+  out=$(peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses investororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"Fund\",\"Args\":[\"$test_pid\",\"ipriv\",\"102100\"]}" 2>&1)
+
+  if echo "$out" | grep -qiE "not approved|error|failed|500"; then
+    pass "Funding unapproved project correctly rejected"
+  else
+    fail "Unapproved project was funded — APPROVAL INTEGRITY BROKEN"
+    echo " Output: $out"
+  fi
+}
+
+# ============================================================
+# MAIN
+# ============================================================
+
+echo ""
+echo "============================================"
+echo " DUAL CHANNEL PRIVACY TEST SUITE"
+echo " Gov: $GOV_CHANNEL | Inv: $INV_CHANNEL"
+echo "============================================"
+
+> "$RESULTS_DIR/privacy_results.csv"
+echo "status,test_name" >> "$RESULTS_DIR/privacy_results.csv"
+
+setup
+sleep 2
+
+test_channel_isolation
+sleep 1
+test_data_leakage
+sleep 1
+test_cross_channel_separation
+sleep 1
+test_org_boundary
+sleep 1
+test_approval_hash_integrity
+
+# ============================================================
+# SUMMARY
+# ============================================================
+
+echo ""
+echo "============================================"
+echo " PRIVACY TEST SUMMARY"
+echo "============================================"
+echo " Total Tests : $TOTAL"
+echo " Passed      : $PASS"
+echo " Failed      : $FAIL"
+echo " Pass Rate   : $(echo "scale=1; $PASS*100/$TOTAL" | bc)%"
+echo "============================================"
+
+cat >> "$RESULTS_DIR/privacy_results.csv" << EOF
+SUMMARY
+Total: $TOTAL | Pass: $PASS | Fail: $FAIL
+Pass Rate: $(echo "scale=1; $PASS*100/$TOTAL" | bc)%
+EOF

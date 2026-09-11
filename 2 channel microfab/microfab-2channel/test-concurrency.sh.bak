@@ -1,0 +1,378 @@
+#!/bin/bash
+
+# ============================================================
+# DUAL CHANNEL CONCURRENCY TEST SCRIPT
+# Tests parallel transactions and race conditions:
+# 1. Multiple investors funding same project simultaneously
+# 2. Multiple projects created at same time
+# 3. Concurrent validation requests
+# Path: /home/tejas/cip-2-test
+# ============================================================
+
+set_startup_env() {
+  export CORE_PEER_LOCALMSPID=StartupOrgMSP
+  export CORE_PEER_MSPCONFIGPATH=/home/tejas/cip-2-test/_msp/StartupOrg/startuporgadmin/msp
+  export CORE_PEER_ADDRESS=startuporgpeer-api.127-0-0-1.nip.io:9090
+}
+
+set_validator_env() {
+  export CORE_PEER_LOCALMSPID=ValidatorOrgMSP
+  export CORE_PEER_MSPCONFIGPATH=/home/tejas/cip-2-test/_msp/ValidatorOrg/validatororgadmin/msp
+  export CORE_PEER_ADDRESS=validatororgpeer-api.127-0-0-1.nip.io:9090
+}
+
+set_investor_env() {
+  export CORE_PEER_LOCALMSPID=InvestorOrgMSP
+  export CORE_PEER_MSPCONFIGPATH=/home/tejas/cip-2-test/_msp/InvestorOrg/investororgadmin/msp
+  export CORE_PEER_ADDRESS=investororgpeer-api.127-0-0-1.nip.io:9090
+}
+
+set_platform_env() {
+  export CORE_PEER_LOCALMSPID=PlatformOrgMSP
+  export CORE_PEER_MSPCONFIGPATH=/home/tejas/cip-2-test/_msp/PlatformOrg/platformorgadmin/msp
+  export CORE_PEER_ADDRESS=platformorgpeer-api.127-0-0-1.nip.io:9090
+}
+
+GOV_CHANNEL="gov-validation-channel"
+INV_CHANNEL="investment-channel"
+GOV_CHAINCODE="govcc"
+INV_CHAINCODE="investcc"
+ORDERER="orderer-api.127-0-0-1.nip.io:9090"
+RESULTS_DIR="./results/concurrency"
+mkdir -p "$RESULTS_DIR"
+
+PASS=0
+FAIL=0
+TOTAL=0
+
+pass() {
+  echo " ✅ PASS — $1"
+  PASS=$((PASS + 1))
+  TOTAL=$((TOTAL + 1))
+  echo "PASS,$1" >> "$RESULTS_DIR/concurrency_results.csv"
+}
+
+fail() {
+  echo " ❌ FAIL — $1"
+  FAIL=$((FAIL + 1))
+  TOTAL=$((TOTAL + 1))
+  echo "FAIL,$1" >> "$RESULTS_DIR/concurrency_results.csv"
+}
+
+section() {
+  echo ""
+  echo "============================================"
+  echo " $1"
+  echo "============================================"
+}
+
+# ============================================================
+# SETUP
+# ============================================================
+
+setup() {
+  section "SETUP — Preparing entities"
+
+  set_startup_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"RegisterStartup","Args":["sconc","ConcStartup","conc@startup.com","PANC01","GSTC01","2022-01-01","fintech","product","India","Maharashtra","Pune","www.conc.com","Concurrency test startup","2022","Conc Founder"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"ValidateStartup","Args":["sconc","APPROVED"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_startup_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"RegisterInvestor","Args":["iconc","ConcInvestor","conc@inv.com","PANC02","AADHARC02","angel","India","Maharashtra","Mumbai","fintech","large","1000000",""]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"ValidateInvestor","Args":["iconc","APPROVED"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_startup_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"RegisterStartup","Args":["sconc","ConcStartup","conc@startup.com","PANC01","GSTC01","2022-01-01","fintech","product","India","Maharashtra","Pune","www.conc.com","Concurrency test startup","2022","Conc Founder"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"ValidateStartup","Args":["sconc","APPROVED"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_investor_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses investororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"RegisterInvestor","Args":["iconc","ConcInvestor","conc@inv.com","PANC02","AADHARC02","angel","India","Maharashtra","Mumbai","fintech","large","1000000",""]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c '{"function":"ValidateInvestor","Args":["iconc","APPROVED"]}' \
+    > /dev/null 2>&1
+  sleep 1
+
+  echo " Setup complete."
+}
+
+# ============================================================
+# TEST 1 — CONCURRENT PROJECT CREATION
+# Fire N CreateProject transactions simultaneously
+# ============================================================
+
+test_concurrent_project_creation() {
+  local N=${1:-10}
+  section "TEST 1 — CONCURRENT PROJECT CREATION ($N parallel)"
+
+  local tmp_dir=$(mktemp -d)
+  local start=$(date +%s%N)
+
+  for i in $(seq 1 $N); do
+    local pid="conc_proj_${i}_$$"
+    (
+      set_startup_env
+      out=$(peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+        --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+        -c "{\"function\":\"CreateProject\",\"Args\":[\"$pid\",\"sconc\",\"Conc Project $i\",\"Concurrent test\",\"500000\",\"60\",\"fintech\",\"equity\",\"India\",\"SMEs\",\"mvp\"]}" 2>&1)
+      if echo "$out" | grep -q "status:200"; then
+        echo "SUCCESS" > "$tmp_dir/result_$i"
+      else
+        echo "FAIL" > "$tmp_dir/result_$i"
+      fi
+    ) &
+  done
+
+  wait # wait for all background jobs
+
+  local end=$(date +%s%N)
+  local total_ms=$(( (end - start) / 1000000 ))
+
+  local success=0
+  local fail_count=0
+  for i in $(seq 1 $N); do
+    result=$(cat "$tmp_dir/result_$i" 2>/dev/null || echo "FAIL")
+    if [ "$result" == "SUCCESS" ]; then
+      success=$((success + 1))
+    else
+      fail_count=$((fail_count + 1))
+    fi
+  done
+
+  rm -rf "$tmp_dir"
+
+  echo " Concurrent Results: $success/$N succeeded in ${total_ms}ms"
+
+  if [ $success -ge $(($N * 8 / 10)) ]; then
+    pass "Concurrent project creation — $success/$N succeeded (≥80% threshold)"
+  else
+    fail "Concurrent project creation — too many failures: $success/$N"
+  fi
+
+  echo "concurrent_creation,$success,$N,$total_ms" >> "$RESULTS_DIR/concurrency_results.csv"
+}
+
+# ============================================================
+# TEST 2 — CONCURRENT FUNDING OF SAME PROJECT
+# Multiple investors fund same project simultaneously
+# ============================================================
+
+test_concurrent_funding() {
+  local N=${1:-5}
+  section "TEST 2 — CONCURRENT FUNDING ($N parallel investors)"
+
+  # Setup a project first
+  local pid="conc_fund_$$"
+
+  set_startup_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"CreateProject\",\"Args\":[\"$pid\",\"sconc\",\"Fund Conc Test\",\"Concurrent funding\",\"1000000\",\"60\",\"fintech\",\"equity\",\"India\",\"SMEs\",\"mvp\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  set_validator_env
+  peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"ApproveProject\",\"Args\":[\"$pid\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  approval_hash=$(peer chaincode query -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+    -c "{\"function\":\"GetProject\",\"Args\":[\"$pid\"]}" 2>/dev/null | \
+    python3 -c "import sys,json; print(json.load(sys.stdin).get('approvalHash',''))" 2>/dev/null)
+
+  set_platform_env
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses platformorgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"CreateProject\",\"Args\":[\"$pid\",\"sconc\",\"Fund Conc Test\",\"Concurrent funding\",\"1000000\",\"60\",\"fintech\",\"equity\",\"India\",\"SMEs\",\"mvp\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+    --peerAddresses platformorgpeer-api.127-0-0-1.nip.io:9090 \
+    -c "{\"function\":\"ApproveProject\",\"Args\":[\"$pid\",\"$approval_hash\"]}" \
+    > /dev/null 2>&1
+  sleep 1
+
+  local tmp_dir=$(mktemp -d)
+  local start=$(date +%s%N)
+
+  # Fire N fund transactions simultaneously with unique investor IDs
+  # Using same investor ID but different amounts simulates concurrent access
+  for i in $(seq 1 $N); do
+    (
+      set_investor_env
+      out=$(peer chaincode invoke -o "$ORDERER" -C "$INV_CHANNEL" -n "$INV_CHAINCODE" \
+        --peerAddresses investororgpeer-api.127-0-0-1.nip.io:9090 \
+        -c "{\"function\":\"Fund\",\"Args\":[\"$pid\",\"iconc\",\"50000\"]}" 2>&1)
+      if echo "$out" | grep -q "status:200"; then
+        echo "SUCCESS" > "$tmp_dir/fund_$i"
+      else
+        echo "FAIL" > "$tmp_dir/fund_$i"
+      fi
+    ) &
+  done
+
+  wait
+
+  local end=$(date +%s%N)
+  local total_ms=$(( (end - start) / 1000000 ))
+
+  local success=0
+  for i in $(seq 1 $N); do
+    result=$(cat "$tmp_dir/fund_$i" 2>/dev/null || echo "FAIL")
+    [ "$result" == "SUCCESS" ] && success=$((success + 1))
+  done
+
+  rm -rf "$tmp_dir"
+
+  echo " Concurrent Funding Results: $success/$N succeeded in ${total_ms}ms"
+
+  # At least 1 should succeed, MVCC conflicts expected for same key
+  if [ $success -ge 1 ]; then
+    pass "Concurrent funding handled — $success/$N succeeded (MVCC conflicts expected)"
+    echo " ℹ️  MVCC conflicts on same key are expected behaviour in Fabric"
+  else
+    fail "All concurrent fund attempts failed — unexpected"
+  fi
+
+  echo "concurrent_funding,$success,$N,$total_ms" >> "$RESULTS_DIR/concurrency_results.csv"
+}
+
+# ============================================================
+# TEST 3 — CONCURRENT VALIDATION REQUESTS
+# ============================================================
+
+test_concurrent_validation() {
+  local N=${1:-5}
+  section "TEST 3 — CONCURRENT VALIDATION REQUESTS ($N parallel)"
+
+  local tmp_dir=$(mktemp -d)
+  local start=$(date +%s%N)
+
+  # Register N startups first
+  for i in $(seq 1 $N); do
+    local sid="conc_val_s${i}_$$"
+    set_startup_env
+    peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+      --peerAddresses startuporgpeer-api.127-0-0-1.nip.io:9090 \
+      -c "{\"function\":\"RegisterStartup\",\"Args\":[\"$sid\",\"ConcValStartup$i\",\"val$i@test.com\",\"PANCV$i\",\"GSTCV$i\",\"2022-01-01\",\"fintech\",\"product\",\"India\",\"Maharashtra\",\"Pune\",\"www.cv$i.com\",\"Test\",\"2022\",\"Founder$i\"]}" \
+      > /dev/null 2>&1
+  done
+  sleep 2
+
+  # Now validate all concurrently
+  for i in $(seq 1 $N); do
+    local sid="conc_val_s${i}_$$"
+    (
+      set_validator_env
+      out=$(peer chaincode invoke -o "$ORDERER" -C "$GOV_CHANNEL" -n "$GOV_CHAINCODE" \
+        --peerAddresses validatororgpeer-api.127-0-0-1.nip.io:9090 \
+        -c "{\"function\":\"ValidateStartup\",\"Args\":[\"$sid\",\"APPROVED\"]}" 2>&1)
+      if echo "$out" | grep -q "status:200"; then
+        echo "SUCCESS" > "$tmp_dir/val_$i"
+      else
+        echo "FAIL:$out" > "$tmp_dir/val_$i"
+      fi
+    ) &
+  done
+
+  wait
+
+  local end=$(date +%s%N)
+  local total_ms=$(( (end - start) / 1000000 ))
+
+  local success=0
+  for i in $(seq 1 $N); do
+    result=$(cat "$tmp_dir/val_$i" 2>/dev/null || echo "FAIL")
+    echo "$result" | grep -q "SUCCESS" && success=$((success + 1))
+  done
+
+  rm -rf "$tmp_dir"
+
+  echo " Concurrent Validation Results: $success/$N succeeded in ${total_ms}ms"
+
+  if [ $success -eq $N ]; then
+    pass "All concurrent validations succeeded — $success/$N"
+  elif [ $success -ge $(($N * 8 / 10)) ]; then
+    pass "Most concurrent validations succeeded — $success/$N (≥80%)"
+  else
+    fail "Too many concurrent validation failures — $success/$N"
+  fi
+
+  echo "concurrent_validation,$success,$N,$total_ms" >> "$RESULTS_DIR/concurrency_results.csv"
+}
+
+# ============================================================
+# MAIN
+# ============================================================
+
+echo ""
+echo "============================================"
+echo " DUAL CHANNEL CONCURRENCY TEST SUITE"
+echo " Gov: $GOV_CHANNEL | Inv: $INV_CHANNEL"
+echo "============================================"
+
+> "$RESULTS_DIR/concurrency_results.csv"
+echo "status,test_name" >> "$RESULTS_DIR/concurrency_results.csv"
+
+setup
+sleep 2
+
+test_concurrent_project_creation 10
+sleep 2
+test_concurrent_funding 5
+sleep 2
+test_concurrent_validation 5
+
+echo ""
+echo "============================================"
+echo " CONCURRENCY TEST SUMMARY"
+echo "============================================"
+echo " Total Tests : $TOTAL"
+echo " Passed      : $PASS"
+echo " Failed      : $FAIL"
+echo " Pass Rate   : $(echo "scale=1; $PASS*100/$TOTAL" | bc)%"
+echo "============================================"
+echo ""
+echo " ℹ️  Note: MVCC conflicts in concurrent writes to same key"
+echo " are EXPECTED in Hyperledger Fabric and not a bug."
+echo " Fabric uses optimistic concurrency — last write wins."
+echo "============================================"

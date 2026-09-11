@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Performance Report</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    canvas { max-height: 400px; margin: 20px 0; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <h1>Fabric Crowdfunding Performance Report</h1>
+  <p>Run <code>node analyze.js</code> to generate results.json and refresh.</p>
+  
+  <canvas id="tpsChart"></canvas>
+  <canvas id="latencyChart"></canvas>
+  
+  <h2>Raw Results</h2>
+  <pre id="results">Loading results.json...</pre>
+
+  <script>
+    // Load results.json if exists
+    fetch('results.json')
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById('results').textContent = JSON.stringify(data, null, 2);
+
+        // TPS Chart
+        const ctx1 = document.getElementById('tpsChart').getContext('2d');
+        new Chart(ctx1, {
+          type: 'line',
+          data: {
+            labels: data.map(d => `Load ${d.load}`),
+            datasets: [{
+              label: 'Avg TPS',
+              data: data.map(d => (d.startup.tps + d.investor.tps + d.project.tps) / 3),
+              borderColor: 'blue',
+              fill: false
+            }]
+          }
+        });
+
+        // Latency Chart
+        const ctx2 = document.getElementById('latencyChart').getContext('2d');
+        new Chart(ctx2, {
+          type: 'bar',
+          data: {
+            labels: data.map(d => `Load ${d.load}`),
+            datasets: [{
+              label: 'Avg Latency (ms)',
+              data: data.map(d => (d.startup.latency + d.investor.latency + d.project.latency) / 3),
+              backgroundColor: 'green'
+            }]
+          }
+        });
+      })
+      .catch(() => {
+        document.getElementById('results').textContent = 'No results.json found. Run node analyze.js first.';
+      });
+  </script>
+</body>
+</html>
+

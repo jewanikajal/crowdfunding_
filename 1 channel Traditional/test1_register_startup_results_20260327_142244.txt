@@ -1,0 +1,8 @@
+TEST 1: REGISTER STARTUP RESULTS
+Timestamp: Fri Mar 27 14:22:44 UTC 2026
+Startups Registered: 19/20
+Failed: 1/20
+Time Taken: 66s
+TPS: .28
+Avg Latency: 3473.68ms
+Success Rate: 95.00%

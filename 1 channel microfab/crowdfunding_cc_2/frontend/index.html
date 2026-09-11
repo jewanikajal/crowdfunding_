@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Crowdfunding Fabric Dashboard</title>
+
+<style>
+body {
+  margin:0;
+  font-family:Segoe UI;
+  background:linear-gradient(135deg,#1e3a8a,#0f172a);
+  color:white;
+}
+header {
+  text-align:center;
+  padding:20px;
+  font-size:22px;
+  font-weight:bold;
+  background:rgba(0,0,0,0.3);
+}
+.container {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:20px;
+  padding:25px;
+}
+.card {
+  background:rgba(255,255,255,0.08);
+  padding:20px;
+  border-radius:16px;
+}
+.card h2 { color:gold; text-align:center; }
+input,button {
+  width:100%;
+  padding:10px;
+  margin:6px 0;
+  border-radius:8px;
+  border:none;
+}
+button { background:gold; font-weight:bold; cursor:pointer; }
+.status { font-size:13px; color:#22d3ee; word-break:break-all; }
+</style>
+</head>
+
+<body>
+
+<header>
+Validator-Controlled Crowdfunding — Fabric 2-Channel Demo
+</header>
+
+<div class="container">
+
+<!-- Startup -->
+<div class="card">
+<h2>Startup</h2>
+<input id="campID" placeholder="Campaign ID">
+<input id="campName" placeholder="Name">
+<button onclick="createCampaign()">Create Campaign</button>
+<button onclick="submitValidation()">Submit Validation</button>
+<div id="campStatus" class="status"></div>
+</div>
+
+<!-- Validator -->
+<div class="card">
+<h2>Validator</h2>
+<input id="approveID" placeholder="Campaign ID">
+<input id="riskScore" placeholder="Risk Score">
+<input id="compScore" placeholder="Compliance Score">
+<button onclick="setRisk()">Set Risk</button>
+<button onclick="setCompliance()">Set Compliance</button>
+<button onclick="approveCampaign()">Approve</button>
+<div id="approveStatus" class="status"></div>
+</div>
+
+<!-- Investor -->
+<div class="card">
+<h2>Investor</h2>
+<input id="invID" placeholder="Investment ID">
+<input id="invCampID" placeholder="Campaign ID">
+<input id="investorID" placeholder="Investor ID">
+<input id="amount" placeholder="Amount">
+<button onclick="investFunds()">Invest</button>
+<div id="investStatus" class="status"></div>
+</div>
+
+<!-- Wallet -->
+<div class="card">
+<h2>Wallet</h2>
+<input id="wid" placeholder="Wallet ID">
+<input id="wowner" placeholder="Owner ID">
+<input id="wtype" placeholder="Type (STARTUP / INVESTOR)">
+<input id="wbal" placeholder="Balance">
+<button onclick="createWallet()">Create Wallet</button>
+<button onclick="queryWallet()">Query Wallet</button>
+<div id="walletStatus" class="status"></div>
+</div>
+
+<!-- Milestone -->
+<div class="card">
+<h2>Milestone</h2>
+<input id="mid" placeholder="Milestone ID">
+<input id="mcamp" placeholder="Campaign ID">
+<input id="mtitle" placeholder="Title">
+<button onclick="submitMilestone()">Submit</button>
+<button onclick="approveMilestone()">Approve</button>
+<div id="mileStatus" class="status"></div>
+</div>
+
+<!-- Release -->
+<div class="card">
+<h2>Release Funds</h2>
+<input id="relInv" placeholder="Investment ID">
+<input id="relStartup" placeholder="Startup ID">
+<button onclick="releaseFunds()">Release</button>
+<div id="releaseStatus" class="status"></div>
+</div>
+
+<!-- Query -->
+<div class="card">
+<h2>Query Campaign</h2>
+<input id="queryID" placeholder="Campaign ID">
+<button onclick="queryCampaign()">Query</button>
+<div id="queryResult" class="status"></div>
+</div>
+
+<!-- Deletion -->
+<div class="card">
+<h2>Delete Campaign</h2>
+<input id="delID" placeholder="Campaign ID">
+<button onclick="previewFee()">Preview Fee</button>
+<button onclick="deleteCampaign()">Delete Campaign</button>
+<div id="delStatus" class="status"></div>
+</div>
+
+</div>
+
+<script>
+
+const API="http://localhost:3000";
+
+let approvalHash="";
+let milestoneHash="";
+
+/* ================= Startup ================= */
+
+async function createCampaign(){
+ let r=await fetch(API+"/campaign",{
+  method:"POST",
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({
+    id:campID.value,
+    name:campName.value,
+    startupId:"S1",
+    desc:"demo",
+    goal:50000
+  })
+ });
+ campStatus.innerText=await r.text();
+}
+
+async function submitValidation(){
+ let r=await fetch(API+"/submitValidation",{
+  method:"POST",
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({id:campID.value})
+ });
+ campStatus.innerText=await r.text();
+}
+
+/* ================= Validator ================= */
+
+async function setRisk(){
+ let r=await fetch(API+"/setRisk",{
+  method:"POST",
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({
+    id:approveID.value,
+    score:riskScore.value
+  })
+ });
+ approveStatus.innerText=await r.text();
+}
+
+async function setCompliance(){
+ let r=await fetch(API+"/setCompliance",{
+  method:"POST",
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({
+    id:approveID.value,
+    score:compScore.value
+  })
+ });
+ approveStatus.innerText=await r.text();
+}
+
+async function approveCampaign(){
+ let r=await fetch(API+"/approveCampaign",{
+  method:"POST",
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({id:approveID.value})
+ });
+ let d=await r.json();
+ approvalHash=d.approvalHash;
+ approveStatus.innerText="Approved — hash stored";
+}
+
+/* ================= Investor ================= */
+
+async function investFunds(){
+ let r=await fetch(API+"/invest",{
+  method:"POST",
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({
+    invId:invID.value,
+    campaignId:invCampID.value,
+    investorId:investorID.value,
+    amount:amount.value,
+    approvalHash
+  })
+ });
+ investStatus.innerText=await r.text();
+}
+
+/* ================= Wallet ================= */
+
+async function createWallet(){
+ let r=await fetch(API+"/wallet",{
+  method:"POST",
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({
+    id:wid.value,
+    owner:wowner.value,
+    type:wtype.value,
+    balance:wbal.value
+  })
+ });
+ walletStatus.innerText=await r.text();
+}
+
+async function queryWallet(){
+ let r=await fetch(API+"/wallet/"+wid.value);
+ walletStatus.innerText=await r.text();
+}
+
+/* ================= Milestone ================= */
+
+async function submitMilestone(){
+ let r=await fetch(API+"/milestone",{
+  method:"POST",
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({
+    id:mid.value,
+    campaignId:mcamp.value,
+    title:mtitle.value,
+    proof:"demo-proof"
+  })
+ });
+ mileStatus.innerText=await r.text();
+}
+
+async function approveMilestone(){
+ let r=await fetch(API+"/approveMilestone",{
+  method:"POST",
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({id:mid.value})
+ });
+ let d=await r.json();
+ milestoneHash=d.milestoneHash;
+ mileStatus.innerText="Milestone approved — hash stored";
+}
+
+/* ================= Release ================= */
+
+async function releaseFunds(){
+ let r=await fetch(API+"/release",{
+  method:"POST",
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({
+    invId:relInv.value,
+    startupId:relStartup.value,
+    milestoneHash
+  })
+ });
+ releaseStatus.innerText=await r.text();
+}
+
+/* ================= Query ================= */
+
+async function queryCampaign(){
+ let r=await fetch(API+"/campaign/"+queryID.value);
+ queryResult.innerText=await r.text();
+}
+
+/* ================= Delete ================= */
+
+async function previewFee(){
+ let r=await fetch(API+"/fee/campaign/"+delID.value);
+ delStatus.innerText=await r.text();
+}
+
+async function deleteCampaign(){
+ let r=await fetch(API+"/deleteCampaign",{
+  method:"POST",
+  headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({
+    id:delID.value,
+    reason:"User requested deletion"
+  })
+ });
+ delStatus.innerText=await r.text();
+}
+
+</script>
+</body>
+</html>

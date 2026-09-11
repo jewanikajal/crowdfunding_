@@ -1,0 +1,13 @@
+{
+  "name": "performance-tests",
+  "version": "1.0.0",
+  "description": "Performance analysis for Fabric DApp",
+  "main": "analyze.js",
+  "scripts": {
+    "test": "node analyze.js"
+  },
+  "dependencies": {
+    "autocannon": "^7.2.1"
+  },
+  "type": "module"
+}

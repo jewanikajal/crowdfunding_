@@ -1,0 +1,4 @@
+Wallets: 100/100
+Failed: 0
+Time: 54s
+TPS: 1.85

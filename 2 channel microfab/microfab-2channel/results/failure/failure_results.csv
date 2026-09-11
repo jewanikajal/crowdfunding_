@@ -1,0 +1,13 @@
+status,test_name
+PASS,Funding closed project correctly rejected
+PASS,Double release correctly rejected
+PASS,Refund on active project correctly rejected
+PASS,Double approval correctly rejected
+PASS,Non-existent startup query returns proper error
+PASS,Non-existent investor query returns proper error
+PASS,Non-existent project query returns proper error
+PASS,Resolving non-existent dispute correctly rejected
+PASS,Project creation for non-existent startup correctly rejected
+SUMMARY
+Total: 9 | Pass: 9 | Fail: 0
+Pass Rate: 100.0%

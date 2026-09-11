@@ -1,0 +1,26 @@
+[
+  {
+    "name": "startup-validator-pdc",
+    "policy": "OR('StartupOrgMSP.member','ValidatorOrgMSP.member')",
+    "requiredPeerCount": 1,
+    "maxPeerCount": 2,
+    "blockToLive": 0,
+    "memberOnlyRead": true
+  },
+  {
+    "name": "validator-platform-pdc",
+    "policy": "OR('ValidatorOrgMSP.member','PlatformOrgMSP.member')",
+    "requiredPeerCount": 1,
+    "maxPeerCount": 2,
+    "blockToLive": 0,
+    "memberOnlyRead": true
+  },
+  {
+    "name": "startup-platform-pdc",
+    "policy": "OR('StartupOrgMSP.member','PlatformOrgMSP.member')",
+    "requiredPeerCount": 1,
+    "maxPeerCount": 2,
+    "blockToLive": 0,
+    "memberOnlyRead": true
+  }
+]

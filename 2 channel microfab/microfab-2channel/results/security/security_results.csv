@@ -1,0 +1,10 @@
+status,test_name
+PASS,Investor correctly blocked from approving project on gov channel
+PASS,Startup correctly blocked from validating itself
+PASS,Funding non-existent project correctly rejected
+PASS,Release on partially funded project correctly rejected
+PASS,Dispute window logic present and functional
+PASS,Investor correctly denied direct access to gov channel
+SUMMARY
+Total: 6 | Pass: 6 | Fail: 0
+Pass Rate: 100.0%

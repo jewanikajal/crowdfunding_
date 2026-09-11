@@ -1,0 +1,8 @@
+TEST 2: VALIDATE STARTUP RESULTS
+Timestamp: Fri Mar 27 14:23:44 UTC 2026
+Startups Validated: 20/20
+Failed: 0/20
+Time Taken: 60s
+TPS: .33
+Avg Latency: 3000.00ms
+Success Rate: 100.00%
